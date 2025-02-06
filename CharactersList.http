@@ -1,0 +1,6 @@
+@CharactersList_HostAddress = http://localhost:5089
+
+GET {{CharactersList_HostAddress}}/api/Characters/
+Accept: application/json
+
+###
