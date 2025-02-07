@@ -1,11 +1,11 @@
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
-namespace CharactersList.Models;
+namespace CharactersList.Models.Database;
 
 public abstract class DatabaseEntity
 {
     [BsonId]
     [BsonRepresentation(BsonType.ObjectId)]
-    public string? Id { get; set; }
+    public string Id { get; set; } = null!;
 }

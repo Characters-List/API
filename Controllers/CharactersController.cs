@@ -1,8 +1,10 @@
 using System.Security.Claims;
-using CharactersList.Models;
+using CharactersList.Models.Database;
+using CharactersList.Models.Dto;
 using CharactersList.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace CharactersList.Controllers;
 
@@ -11,25 +13,36 @@ namespace CharactersList.Controllers;
 [Route("/api/[controller]")]
 public class CharactersController: ControllerBase
 {
-    private DatabaseService<Character> _service;
+    private DatabaseService<Character> _characterDatabaseService;
+    private DatabaseService<CharacterClass> _characterClassDatabaseService;
     
-    public CharactersController(DatabaseService<Character> service)
+    public CharactersController(
+        DatabaseService<Character> characterDatabaseService,
+        DatabaseService<CharacterClass> characterClassDatabaseService
+    )
     {
-        _service = service;
+        _characterDatabaseService = characterDatabaseService;
+        _characterClassDatabaseService = characterClassDatabaseService;
     }
     
     [HttpGet]
-    public async Task<List<Character>> Get()
+    public async Task<List<CharacterDto>> Get()
     {
         string userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "";
+        List<Character> characters = await _characterDatabaseService.Get(character => character.UserId == userId);
+
+        foreach (Character character in characters)
+        {
+            character.Class = (await _characterClassDatabaseService.GetUnique(character.ClassId))!;
+        }
         
-        return await _service.Get(character => character.UserId == userId);
+        return characters.Select(CharacterDto.FromCharacter).ToList();
     }
     
     [HttpGet("{id:length(24)}")]
-    public async Task<Character?> Get(string id)
+    public async Task<CharacterDto?> Get(string id)
     {
-        Character? character = await _service.Get(id);
+        Character? character = await _characterDatabaseService.GetUnique(id);
         
         if (character is null)
         {
@@ -43,52 +56,82 @@ public class CharactersController: ControllerBase
             return null;
         }
 
-        return character;
+        return CharacterDto.FromCharacter(character);
     }
     
     [HttpPost]
-    public async Task<IActionResult> Create(Character character)
+    public async Task<IActionResult> Create(CharacterCreationDto character)
     {
-        if (character.Class is null)
+        CharacterClass? characterClass = await _characterClassDatabaseService.GetUnique(character.ClassId);
+
+        if (characterClass is null)
         {
-            ModelState.AddModelError("Class", "Class is required.");
+            ModelState.AddModelError("Class", "Invalid character class.");
             
             return BadRequest(ModelState);
         }
-        
-        if (!Enum.IsDefined(typeof(CharacterClass), character.Class.Value))
-        {
-            ModelState.AddModelError("Class", "Invalid character class.");
 
-            return BadRequest(ModelState);
-        }
+        Character createdCharacter = await _characterDatabaseService.Create(
+            new Character
+            {
+                Name = character.Name,
+                Class = characterClass,
+                ClassId = characterClass.Id,
+                CurrentHealth = characterClass.MaxHealth,
+                UserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            }
+        );
         
-        Character createdCharacter = await _service.Create(new Character
-        {
-            Name = character.Name,
-            Class = character.Class,
-            Gold = 0,
-            Experience = 0,
-            CurrentHealth = 20,
-            UserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-        });
+        return CreatedAtAction(
+            nameof(Get),
+            new { id = createdCharacter.Id },
+            CharacterDto.FromCharacter(createdCharacter)
+        );
         
-        return CreatedAtAction(nameof(Create), new { id = createdCharacter.Id }, createdCharacter);
     }
     
     [HttpPut("{id:length(24)}")]
-    public async Task<IActionResult> Update(string id, Character character)
+    public async Task<IActionResult> Update(string id, CharacterUpdateDto update)
     {
-        Character? existingCharacter = await _service.Get(id);
+        Character? existingCharacter = await _characterDatabaseService.GetUnique(id);
         
         if (existingCharacter is null)
         {
             return NotFound();
         }
-
-        character.Id = id;
         
-        await _service.Update(id, character);
+        existingCharacter.Class = await _characterClassDatabaseService.GetUnique(existingCharacter.ClassId);
+        
+        if (existingCharacter.UserId != User.FindFirst(ClaimTypes.NameIdentifier)?.Value)
+        {
+            return Forbid();
+        }
+        
+        if (update.CurrentHealth != null && update.CurrentHealth < 0)
+        {
+            ModelState.AddModelError("CurrentHealth", "Current health cannot be negative.");
+            
+            return BadRequest(ModelState);
+        }
+        
+        if (update.CurrentHealth != null && update.CurrentHealth > existingCharacter.Class.MaxHealth)
+        {
+            ModelState.AddModelError("CurrentHealth", "Current health cannot be greater than max health.");
+            
+            return BadRequest(ModelState);
+        }
+        
+        await _characterDatabaseService.Update(
+            id,
+            new Character
+            {
+                Id = id,
+                Name = update.Name ?? existingCharacter.Name,
+                Class = existingCharacter.Class,
+                CurrentHealth = update.CurrentHealth ?? existingCharacter.CurrentHealth,
+                UserId = existingCharacter.UserId
+            }
+        );
         
         return NoContent();
     }
@@ -96,14 +139,19 @@ public class CharactersController: ControllerBase
     [HttpDelete("{id:length(24)}")]
     public async Task<IActionResult> Delete(string id)
     {
-        Character? character = await _service.Get(id);
+        Character? character = await _characterDatabaseService.GetUnique(id);
         
         if (character is null)
         {
             return NotFound();
         }
         
-        await _service.Delete(id);
+        if (character.UserId != User.FindFirst(ClaimTypes.NameIdentifier)?.Value)
+        {
+            return Forbid();
+        }
+        
+        await _characterDatabaseService.Delete(id);
         
         return NoContent();
     }
