@@ -4,31 +4,49 @@ using CharactersList.Configuration.Database;
 using CharactersList.Models.Database;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
+using MongoDB.Entities;
 
 namespace CharactersList.Services;
 
-public class DatabaseService<T> where T : DatabaseEntity
+public class DatabaseService<T> where T : Entity
 {
-    IOptions<CharactersListDatabaseSettings> _databaseSettings;
-    private readonly IMongoCollection<T> _documents;
+    public static bool IsInitialized { get; private set; } = false;
     
     public DatabaseService(IOptions<CharactersListDatabaseSettings> databaseSettings)
     {
-        MongoClient client = new MongoClient(databaseSettings.Value.ConnectionString);
+        Init(databaseSettings);
+    }
+
+    public static void Init(IOptions<CharactersListDatabaseSettings> databaseSettings)
+    {
+        if (IsInitialized)
+        {
+            return;
+        }
         
-        IMongoDatabase _db = client.GetDatabase(databaseSettings.Value.DatabaseName);
-        _documents = _db.GetCollection<T>(typeof(T).Name);
-        _databaseSettings = databaseSettings;
+        Task
+            .Run(async () =>
+                await DB.InitAsync(
+                    databaseSettings.Value.DatabaseName,
+                    MongoClientSettings.FromConnectionString(
+                        databaseSettings.Value.ConnectionString
+                    )
+                )
+            )
+            .GetAwaiter()
+            .GetResult();
+        
+        IsInitialized = true;
     }
     
-    private IFindFluent<T, T> Find(Expression<Func<T, bool>> predicate)
+    private Find<T, T> Find(Expression<Func<T, bool>> predicate)
     {
-        return _documents.Find(predicate);
+        return DB.Find<T>().Match(predicate);
     }
     
     public async Task<List<T>> Get(Expression<Func<T, bool>> predicate)
     {
-        return await Find(predicate).ToListAsync();
+        return await Find(predicate).ExecuteAsync();
     }
 
     public async Task<List<T>> Get()
@@ -38,28 +56,33 @@ public class DatabaseService<T> where T : DatabaseEntity
     
     public async Task<T?> GetUnique(string id)
     {
-        return await GetUnique(d => d.Id == id);
+        return await GetUnique(d => d.ID == id);
     }
     
     public async Task<T?> GetUnique(Expression<Func<T, bool>> predicate)
     {
-        return await Find(predicate).FirstOrDefaultAsync();
+        return await Find(predicate).ExecuteFirstAsync();
     }
     
     public async Task<T> Create(T document)
     {
-        await _documents.InsertOneAsync(document);
+        await document.SaveAsync();
         
         return document;
     }
     
-    public async Task Update(string id, T document)
+    public async Task<bool> Update(string id, T document)
     {
-        await _documents.ReplaceOneAsync(d => d.Id == id, document);
+        UpdateResult result = await DB.Update<T>()
+            .MatchID(id)
+            .ModifyWith(document)
+            .ExecuteAsync();
+
+        return result is { IsAcknowledged: true, ModifiedCount: > 0 };
     }
     
     public async Task Delete(string id)
     {
-        await _documents.DeleteOneAsync(d => d.Id == id);
+        await DB.DeleteAsync<T>(id);
     }
 }

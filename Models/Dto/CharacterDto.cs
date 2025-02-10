@@ -15,15 +15,15 @@ public class CharacterDto
     {
         return new CharacterDto
         {
-            Id = character.Id,
+            Id = character.ID,
             Name = character.Name,
-            Class = character.Class.Name,
+            Class = "",
             Gold = character.Gold,
             Experience = character.Experience,
             Health = new HealthDto
             {
                 Current = character.CurrentHealth,
-                Max = character.Class.MaxHealth
+                Max = 0
             }
         };
     }

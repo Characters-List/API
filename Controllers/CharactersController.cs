@@ -4,7 +4,7 @@ using CharactersList.Models.Dto;
 using CharactersList.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
+using MongoDB.Entities;
 
 namespace CharactersList.Controllers;
 
@@ -30,11 +30,6 @@ public class CharactersController: ControllerBase
     {
         string userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "";
         List<Character> characters = await _characterDatabaseService.Get(character => character.UserId == userId);
-
-        foreach (Character character in characters)
-        {
-            character.Class = (await _characterClassDatabaseService.GetUnique(character.ClassId))!;
-        }
         
         return characters.Select(CharacterDto.FromCharacter).ToList();
     }
@@ -75,8 +70,7 @@ public class CharactersController: ControllerBase
             new Character
             {
                 Name = character.Name,
-                Class = characterClass,
-                ClassId = characterClass.Id,
+                Class = characterClass.ToReference(),
                 CurrentHealth = characterClass.MaxHealth,
                 UserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
             }
@@ -84,7 +78,7 @@ public class CharactersController: ControllerBase
         
         return CreatedAtAction(
             nameof(Get),
-            new { id = createdCharacter.Id },
+            new { id = createdCharacter.ID },
             CharacterDto.FromCharacter(createdCharacter)
         );
         
@@ -100,8 +94,6 @@ public class CharactersController: ControllerBase
             return NotFound();
         }
         
-        existingCharacter.Class = await _characterClassDatabaseService.GetUnique(existingCharacter.ClassId);
-        
         if (existingCharacter.UserId != User.FindFirst(ClaimTypes.NameIdentifier)?.Value)
         {
             return Forbid();
@@ -113,19 +105,21 @@ public class CharactersController: ControllerBase
             
             return BadRequest(ModelState);
         }
+
+        CharacterClass characterClass = await existingCharacter.Class.ToEntityAsync();
         
-        if (update.CurrentHealth != null && update.CurrentHealth > existingCharacter.Class.MaxHealth)
+        if (update.CurrentHealth != null && update.CurrentHealth > characterClass.MaxHealth)
         {
             ModelState.AddModelError("CurrentHealth", "Current health cannot be greater than max health.");
             
             return BadRequest(ModelState);
         }
-        
-        await _characterDatabaseService.Update(
+
+        bool result = await _characterDatabaseService.Update(
             id,
             new Character
             {
-                Id = id,
+                ID = id,
                 Name = update.Name ?? existingCharacter.Name,
                 Class = existingCharacter.Class,
                 CurrentHealth = update.CurrentHealth ?? existingCharacter.CurrentHealth,
@@ -133,7 +127,7 @@ public class CharactersController: ControllerBase
             }
         );
         
-        return NoContent();
+        return result ? NoContent() : NotFound();
     }
     
     [HttpDelete("{id:length(24)}")]

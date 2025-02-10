@@ -21,28 +21,15 @@ public class CharacterClassesController: ControllerBase
     {
         List<CharacterClass> classes = await _characterClassDatabaseService.Get();
 
-        return classes.Select(
-            characterClass => new CharacterClassDto
-            {
-                Id = characterClass.Id,
-                Name = characterClass.Name,
-                Description = characterClass.Description,
-                MaxHealth = characterClass.MaxHealth
-            }
-        ).ToList();
+        return classes.Select(CharacterClassDto.FromCharacterClass).ToList();
     }
     
     [HttpGet("{id:length(24)}")]
     public async Task<CharacterClassDto?> Get(string id)
     {
-        CharacterClass characterClass = await _characterClassDatabaseService.GetUnique(id);
+        CharacterClass? characterClass = await _characterClassDatabaseService.GetUnique(id);
 
-        return new CharacterClassDto
-        {
-            Id = characterClass.Id,
-            Name = characterClass.Name,
-            Description = characterClass.Description
-        };
+        return characterClass is not null ? CharacterClassDto.FromCharacterClass(characterClass) : null;
     }
     
     [HttpPost]
@@ -55,15 +42,15 @@ public class CharacterClassesController: ControllerBase
             MaxHealth = characterClass.MaxHealth
         });
         
-        return CreatedAtAction(nameof(Get), new { id = createdClass.Id }, createdClass);
+        return CreatedAtAction(nameof(Get), new { id = createdClass.ID }, createdClass);
     }
     
     [HttpDelete("{id:length(24)}")]
     public async Task<IActionResult> Delete(string id)
     {
-        CharacterClass characterClass = await _characterClassDatabaseService.GetUnique(id);
+        CharacterClass? characterClass = await _characterClassDatabaseService.GetUnique(id);
         
-        if (characterClass == null)
+        if (characterClass is null)
         {
             return NotFound();
         }

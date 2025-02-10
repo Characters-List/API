@@ -1,8 +1,13 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace CharactersList.Models.Dto;
 
 public class CharacterClassCreationDto
 {
-    public string Name { get; set; }
-    public string Description { get; set; }
+    [StringLength(50, MinimumLength = 2)]
+    public required string Name { get; set; }
+    [StringLength(200, MinimumLength = 10)]
+    public required string Description { get; set; }
+    [Range(5, 20)]
     public int MaxHealth { get; set; }
 }
