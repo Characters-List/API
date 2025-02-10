@@ -1,7 +1,10 @@
+using System.Collections;
 using CharactersList.Models.Database;
 using CharactersList.Models.Dto;
 using CharactersList.Services;
 using Microsoft.AspNetCore.Mvc;
+using MongoDB.Driver.Linq;
+using MongoDB.Entities;
 
 namespace CharactersList.Controllers;
 
@@ -10,10 +13,12 @@ namespace CharactersList.Controllers;
 public class CharacterClassesController: ControllerBase
 {
     private DatabaseService<CharacterClass> _characterClassDatabaseService;
+    private DatabaseService<Character> _characterDatabaseService;
     
-    public CharacterClassesController(DatabaseService<CharacterClass> characterClassDatabaseService)
+    public CharacterClassesController(DatabaseService<CharacterClass> characterClassDatabaseService, DatabaseService<Character> characterDatabaseService)
     {
         _characterClassDatabaseService = characterClassDatabaseService;
+        _characterDatabaseService = characterDatabaseService;
     }
     
     [HttpGet]
@@ -30,6 +35,21 @@ public class CharacterClassesController: ControllerBase
         CharacterClass? characterClass = await _characterClassDatabaseService.GetUnique(id);
 
         return characterClass is not null ? CharacterClassDto.FromCharacterClass(characterClass) : null;
+    }
+    
+    [HttpGet("{id:length(24)}/Characters")]
+    public async Task<CharacterDto[]> GetCharactersWithClassId(string id)
+    {
+        CharacterClass? characterClass = await _characterClassDatabaseService.GetUnique(id);
+        
+        if (characterClass is null)
+        {
+            return [];
+        }
+        
+        IEnumerable<Character> characters = await _characterDatabaseService.Get(character => character.Class.ID == id);
+        
+        return await Task.WhenAll(characters.Select(CharacterDto.FromCharacter));
     }
     
     [HttpPost]

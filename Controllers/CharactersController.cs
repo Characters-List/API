@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Diagnostics;
 using System.Security.Claims;
 using CharactersList.Models.Database;
 using CharactersList.Models.Dto;
@@ -58,6 +59,13 @@ public class CharactersController: ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create(CharacterCreationDto character)
     {
+        string? userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
+        
         CharacterClass? characterClass = await _characterClassDatabaseService.GetUnique(character.ClassId);
 
         if (characterClass is null)
@@ -73,7 +81,7 @@ public class CharactersController: ControllerBase
                 Name = character.Name,
                 Class = characterClass.ToReference(),
                 CurrentHealth = characterClass.MaxHealth,
-                UserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value,
+                UserId = userId,
                 DateOfBirth = character.DateOfBirth,
             }
         );
@@ -89,6 +97,13 @@ public class CharactersController: ControllerBase
     [HttpPut("{id:length(24)}")]
     public async Task<IActionResult> Update(string id, CharacterUpdateDto update)
     {
+        string? userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
+        
         Character? existingCharacter = await _characterDatabaseService.GetUnique(id);
         
         if (existingCharacter is null)
@@ -96,23 +111,18 @@ public class CharactersController: ControllerBase
             return NotFound();
         }
         
-        if (existingCharacter.UserId != User.FindFirst(ClaimTypes.NameIdentifier)?.Value)
+        if (existingCharacter.UserId != userId)
         {
             return Forbid();
         }
         
-        if (update.CurrentHealth is < 0)
-        {
-            ModelState.AddModelError("CurrentHealth", "Current health cannot be negative.");
-            
-            return BadRequest(ModelState);
-        }
-
-        CharacterClass characterClass = await existingCharacter.Class.ToEntityAsync();
+        CharacterClass? newClass = update.ClassId is null
+            ? await existingCharacter.Class.ToEntityAsync()
+            : await _characterClassDatabaseService.GetUnique(update.ClassId);
         
-        if (update.CurrentHealth != null && update.CurrentHealth > characterClass.MaxHealth)
+        if (newClass is null)
         {
-            ModelState.AddModelError("CurrentHealth", "Current health cannot be greater than max health.");
+            ModelState.AddModelError(nameof(update.ClassId), "Invalid character class.");
             
             return BadRequest(ModelState);
         }
@@ -123,8 +133,8 @@ public class CharactersController: ControllerBase
             {
                 ID = id,
                 Name = update.Name ?? existingCharacter.Name,
-                Class = existingCharacter.Class,
-                CurrentHealth = update.CurrentHealth ?? existingCharacter.CurrentHealth,
+                Class = newClass.ToReference(),
+                CurrentHealth = existingCharacter.CurrentHealth,
                 UserId = existingCharacter.UserId
             }
         );

@@ -56,7 +56,7 @@ public class DatabaseService<T> where T : Entity
     
     public async Task<T?> GetUnique(string id)
     {
-        return await GetUnique(d => d.ID == id);
+        return await DB.Find<T>().MatchID(id).ExecuteFirstAsync();
     }
     
     public async Task<T?> GetUnique(Expression<Func<T, bool>> predicate)

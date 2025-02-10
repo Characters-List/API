@@ -1,10 +1,14 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace CharactersList.Models.Dto;
 
 public class CharacterUpdateDto
 {
-    public string? Name { get; set; } = null!;
-    public decimal? Gold { get; set; } = 0;
-    public int? Experience { get; set; } = 0;
-    public int? CurrentHealth { get; set; } = 0;
-    public int? MaxHealth { get; set; } = 0;
+    [StringLength(50, MinimumLength = 2)]
+    public string? Name { get; set; }
+    
+    [StringLength(24, MinimumLength = 24)]
+    public string? ClassId { get; set; }
+    
+    public DateTime? DateOfBirth { get; set; }
 }
