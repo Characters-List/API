@@ -7,6 +7,7 @@ public class CharacterClass: Entity
     public string Name { get; set; } = null!;
     public string Description { get; set; } = null!;
     public int MaxHealth { get; set; } = 0;
+    [InverseSide]
     public Many<Character, CharacterClass> Characters { get; set; } = null!;
 
     public CharacterClass()

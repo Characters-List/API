@@ -25,7 +25,8 @@ builder.Services.AddCors(
                         "https://localhost:4200"
                     )
                     .AllowCredentials()
-                    .AllowAnyHeader();
+                    .AllowAnyHeader()
+                    .AllowAnyMethod();
             }
         );
     }

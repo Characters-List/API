@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Security.Claims;
 using CharactersList.Models.Database;
 using CharactersList.Models.Dto;
@@ -26,12 +27,12 @@ public class CharactersController: ControllerBase
     }
     
     [HttpGet]
-    public async Task<List<CharacterDto>> Get()
+    public async Task<CharacterDto[]> Get()
     {
         string userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "";
         List<Character> characters = await _characterDatabaseService.Get(character => character.UserId == userId);
         
-        return characters.Select(CharacterDto.FromCharacter).ToList();
+        return await Task.WhenAll(characters.Select(CharacterDto.FromCharacter));
     }
     
     [HttpGet("{id:length(24)}")]
@@ -51,7 +52,7 @@ public class CharactersController: ControllerBase
             return null;
         }
 
-        return CharacterDto.FromCharacter(character);
+        return await CharacterDto.FromCharacter(character);
     }
     
     [HttpPost]
@@ -61,7 +62,7 @@ public class CharactersController: ControllerBase
 
         if (characterClass is null)
         {
-            ModelState.AddModelError("Class", "Invalid character class.");
+            ModelState.AddModelError(nameof(character.ClassId), "Invalid character class.");
             
             return BadRequest(ModelState);
         }
@@ -72,14 +73,15 @@ public class CharactersController: ControllerBase
                 Name = character.Name,
                 Class = characterClass.ToReference(),
                 CurrentHealth = characterClass.MaxHealth,
-                UserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                UserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value,
+                DateOfBirth = character.DateOfBirth,
             }
         );
         
         return CreatedAtAction(
             nameof(Get),
             new { id = createdCharacter.ID },
-            CharacterDto.FromCharacter(createdCharacter)
+            await CharacterDto.FromCharacter(createdCharacter)
         );
         
     }
@@ -99,7 +101,7 @@ public class CharactersController: ControllerBase
             return Forbid();
         }
         
-        if (update.CurrentHealth != null && update.CurrentHealth < 0)
+        if (update.CurrentHealth is < 0)
         {
             ModelState.AddModelError("CurrentHealth", "Current health cannot be negative.");
             
