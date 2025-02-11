@@ -1,6 +1,6 @@
 using System.Security.Claims;
 using CharactersList.Models.Database;
-using CharactersList.Models.Dto;
+using CharactersList.Models.Dto.Character;
 using CharactersList.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

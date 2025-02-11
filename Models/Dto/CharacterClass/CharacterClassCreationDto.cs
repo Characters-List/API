@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace CharactersList.Models.Dto;
+namespace CharactersList.Models.Dto.CharacterClass;
 
 public class CharacterClassCreationDto
 {

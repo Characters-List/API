@@ -1,6 +1,6 @@
-using CharactersList.Models.Database;
+using CharactersList.Models.Dto.CharacterClass;
 
-namespace CharactersList.Models.Dto;
+namespace CharactersList.Models.Dto.Character;
 
 public class CharacterDto
 {
@@ -13,9 +13,9 @@ public class CharacterDto
     public string UserId { get; set; } = null!;
     public DateTime DateOfBirth { get; set; }
     
-    public static async Task<CharacterDto> FromCharacter(Character character)
+    public static async Task<CharacterDto> FromCharacter(Database.Character character)
     {
-        CharacterClass characterClass = await character.Class.ToEntityAsync();
+        Database.CharacterClass characterClass = await character.Class.ToEntityAsync();
         
         return new CharacterDto
         {
