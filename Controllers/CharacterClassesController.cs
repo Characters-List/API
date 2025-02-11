@@ -1,7 +1,9 @@
 using System.Collections;
+using System.Security.Claims;
 using CharactersList.Models.Database;
 using CharactersList.Models.Dto;
 using CharactersList.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Driver.Linq;
 using MongoDB.Entities;
@@ -52,9 +54,16 @@ public class CharacterClassesController: ControllerBase
         return await Task.WhenAll(characters.Select(CharacterDto.FromCharacter));
     }
     
+    [Authorize]
     [HttpPost]
     public async Task<IActionResult> Create(CharacterClassCreationDto characterClass)
     {
+        List<string> permissions = User.Claims.Where(claim => claim.Type == "permissions").Select(claim => claim.Value).ToList();
+        if (!permissions.Contains("admin"))
+        {
+            return Unauthorized();
+        }
+        
         CharacterClass createdClass = await _characterClassDatabaseService.Create(new CharacterClass
         {
             Name = characterClass.Name,
@@ -65,6 +74,7 @@ public class CharacterClassesController: ControllerBase
         return CreatedAtAction(nameof(Get), new { id = createdClass.ID }, createdClass);
     }
     
+    [Authorize]
     [HttpDelete("{id:length(24)}")]
     public async Task<IActionResult> Delete(string id)
     {
@@ -75,6 +85,8 @@ public class CharacterClassesController: ControllerBase
             return NotFound();
         }
         
+        // NOTE: Deleting the class won't delete the characters, so we need to delete them manually 
+        await _characterDatabaseService.Delete(character => character.Class.ID == id);
         await _characterClassDatabaseService.Delete(id);
         
         return NoContent();

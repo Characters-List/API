@@ -85,4 +85,9 @@ public class DatabaseService<T> where T : Entity
     {
         await DB.DeleteAsync<T>(id);
     }
+    
+    public async Task Delete(Expression<Func<T, bool>> predicate)
+    {
+        await DB.DeleteAsync(predicate);
+    }
 }
