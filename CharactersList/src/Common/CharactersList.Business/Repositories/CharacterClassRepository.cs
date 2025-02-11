@@ -1,4 +1,7 @@
+using System;
+using System.Collections.Generic;
 using System.Linq.Expressions;
+using System.Threading.Tasks;
 using CharactersList.Business.Interfaces;
 using CharactersList.Domain.Entities;
 using CharactersList.Infrastructure.Persistence.MongoDB.Interfaces;

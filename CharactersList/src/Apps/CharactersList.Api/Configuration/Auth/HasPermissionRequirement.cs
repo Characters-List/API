@@ -1,3 +1,4 @@
+using System;
 using Microsoft.AspNetCore.Authorization;
 
 namespace CharactersList.Api.Configuration.Auth;

@@ -1,3 +1,4 @@
+using System;
 using CharactersList.Application.Dto.CharacterClass;
 using CharactersList.Models.Dto;
 
