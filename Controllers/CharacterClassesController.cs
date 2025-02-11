@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace CharactersList.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("/api/[controller]")]
 public class CharacterClassesController: ControllerBase
 {
@@ -51,7 +52,6 @@ public class CharacterClassesController: ControllerBase
         return await Task.WhenAll(characters.Select(CharacterDto.FromCharacter));
     }
     
-    [Authorize]
     [HttpPost]
     public async Task<IActionResult> Create(CharacterClassCreationDto characterClass)
     {
@@ -71,7 +71,6 @@ public class CharacterClassesController: ControllerBase
         return CreatedAtAction(nameof(Get), new { id = createdClass.ID }, createdClass);
     }
 
-    [Authorize]
     [HttpPut("{id:length(24)}")]
     public async Task<IActionResult> Update(string id, CharacterClassUpdateDto update)
     {
@@ -102,7 +101,6 @@ public class CharacterClassesController: ControllerBase
         return result ? NoContent() : NotFound();
     }
     
-    [Authorize]
     [HttpDelete("{id:length(24)}")]
     public async Task<IActionResult> Delete(string id)
     {
