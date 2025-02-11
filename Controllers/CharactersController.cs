@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Diagnostics;
 using System.Security.Claims;
 using CharactersList.Models.Database;
 using CharactersList.Models.Dto;
@@ -15,8 +13,8 @@ namespace CharactersList.Controllers;
 [Route("/api/[controller]")]
 public class CharactersController: ControllerBase
 {
-    private DatabaseService<Character> _characterDatabaseService;
-    private DatabaseService<CharacterClass> _characterClassDatabaseService;
+    private readonly DatabaseService<Character> _characterDatabaseService;
+    private readonly DatabaseService<CharacterClass> _characterClassDatabaseService;
     
     public CharactersController(
         DatabaseService<Character> characterDatabaseService,
@@ -135,7 +133,8 @@ public class CharactersController: ControllerBase
                 Name = update.Name ?? existingCharacter.Name,
                 Class = newClass.ToReference(),
                 CurrentHealth = existingCharacter.CurrentHealth,
-                UserId = existingCharacter.UserId
+                UserId = existingCharacter.UserId,
+                DateOfBirth = update.DateOfBirth ?? existingCharacter.DateOfBirth
             }
         );
         

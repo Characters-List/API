@@ -56,7 +56,7 @@ public class DatabaseService<T> where T : Entity
     
     public async Task<T?> GetUnique(string id)
     {
-        return await DB.Find<T>().MatchID(id).ExecuteFirstAsync();
+        return await Find(e => e.ID == id).ExecuteFirstAsync();
     }
     
     public async Task<T?> GetUnique(Expression<Func<T, bool>> predicate)
@@ -78,7 +78,7 @@ public class DatabaseService<T> where T : Entity
             .ModifyWith(document)
             .ExecuteAsync();
 
-        return result is { IsAcknowledged: true, ModifiedCount: > 0 };
+        return result is { IsAcknowledged: true };
     }
     
     public async Task Delete(string id)

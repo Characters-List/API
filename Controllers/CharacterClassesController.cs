@@ -12,8 +12,8 @@ namespace CharactersList.Controllers;
 [Route("/api/[controller]")]
 public class CharacterClassesController: ControllerBase
 {
-    private DatabaseService<CharacterClass> _characterClassDatabaseService;
-    private DatabaseService<Character> _characterDatabaseService;
+    private readonly DatabaseService<CharacterClass> _characterClassDatabaseService;
+    private readonly DatabaseService<Character> _characterDatabaseService;
     
     public CharacterClassesController(DatabaseService<CharacterClass> characterClassDatabaseService, DatabaseService<Character> characterDatabaseService)
     {
