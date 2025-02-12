@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Asp.Versioning;
 using CharactersList.Application.Dto.Character;
 using CharactersList.Application.Dto.CharacterClass;
 using CharactersList.Business.Interfaces;
@@ -11,7 +12,8 @@ namespace CharactersList.Api.Controllers.v1;
 
 [Authorize(Policy = "user")]
 [ApiController]
-[Route("/api/v1/[controller]")]
+[ApiVersion(1)]
+[Route("/api/v{v:apiVersion}/[controller]")]
 public class CharactersController: ControllerBase
 {
     private readonly ICharacterClassRepository _characterClassRepository;
