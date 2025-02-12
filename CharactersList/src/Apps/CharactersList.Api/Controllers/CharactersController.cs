@@ -89,13 +89,6 @@ public class CharactersController: ControllerBase
             return null;
         }
 
-        string userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "";
-        
-        if (character.UserId != userId)
-        {
-            return null;
-        }
-
         return new CharacterDto
         {
             Id = character.Id,
