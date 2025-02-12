@@ -1,6 +1,3 @@
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Asp.Versioning;
 using CharactersList.Application.Dto.Character;
 using CharactersList.Application.Dto.CharacterClass;
@@ -10,7 +7,7 @@ using CharactersList.Models.Dto;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace CharactersList.Api.Controllers;
+namespace CharactersList.Api.Controllers.v1;
 
 [ApiController]
 [Authorize(Policy = "user")]
